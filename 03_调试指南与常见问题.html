@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>03 调试指南与常见问题 · STM32 智能小车</title>
+<style>
+ body{font-family:"Microsoft YaHei",system-ui;max-width:920px;margin:24px auto;padding:0 16px;color:#222;line-height:1.75;}
+ h1{border-bottom:3px solid #2b6cb0;padding-bottom:8px;font-size:26px;}
+ h2{color:#2b6cb0;margin-top:34px;border-left:5px solid #2b6cb0;padding-left:10px;font-size:20px;}
+ h3{color:#1a4d8f;margin-top:24px;}
+ table{border-collapse:collapse;width:100%;margin:12px 0;}
+ th,td{border:1px solid #bbb;padding:6px 10px;text-align:left;vertical-align:top;}
+ th{background:#e8f0fe;}
+ .warn{background:#fff3cd;border:1px solid #f0c36d;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ .danger{background:#fdecea;border:1px solid #e57373;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ .tip{background:#e6f4ea;border:1px solid #86c79a;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ code{background:#f0f0f0;padding:1px 6px;border-radius:4px;font-family:Consolas,monospace;}
+ .step{background:#f7f9fc;border:1px solid #d5dce8;border-radius:8px;padding:10px 16px;margin:12px 0;}
+ .num{display:inline-block;background:#2b6cb0;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-weight:bold;}
+ kbd{background:#333;color:#fff;border-radius:4px;padding:1px 8px;font-family:Consolas,monospace;font-size:13px;}
+</style>
+</head>
+<body>
+
+<h1>🔍 03 调试指南与常见问题</h1>
+<p>调试的核心思想：<strong>一次只验证一件事，用传感器监视模式（指令 4 和 T）当作"仪表盘"。</strong>按下面的顺序做，每一步确认通过再做下一步。</p>
+
+<h2>第 1 步：第一次上电（车轮悬空！）</h2>
+<div class="danger">把车垫起来让 4 个轮子全部悬空！第一次通电谁知道它想干嘛。</div>
+<div class="step"><span class="num">1</span>板载 LED 每 0.5 秒闪一次 → 程序在跑，供电正常。</div>
+<div class="step"><span class="num">2</span>LED 不闪 → 检查 5V 是否到了单片机、BOOT 跳线、程序是否下载成功。</div>
+
+<h2>第 2 步：连蓝牙（手机当遥控器 + 仪表盘）</h2>
+<div class="step"><span class="num">1</span>手机安装 APP：<strong>Serial Bluetooth Terminal</strong>（安卓应用商店可搜到）。</div>
+<div class="step"><span class="num">2</span>手机蓝牙设置里搜索设备，找到 <strong>HC-05</strong>，配对密码 <strong>1234</strong>（个别模块是 0000）。</div>
+<div class="step"><span class="num">3</span>打开 APP → 菜单 Devices → Bluetooth Classic → 选 HC-05。HC-05 板上的灯会从"快速闪"变成"每 2 秒慢闪一次"= 连接成功。</div>
+<div class="step"><span class="num">4</span>在输入框发送 <code>H</code>，APP 上应收到帮助菜单；发 <code>T</code> 应收到一行传感器数据。<br>收到 = 整个蓝牙链路 OK，后面的调试全靠它。</div>
+<div class="warn">注意 APP 里发送要选"发送 \r\n 或直接发送"都可以，本程序逐字符解析，不受影响。若中文菜单显示乱码，把 APP 的编码设置改为 UTF-8。</div>
+
+<h2>第 3 步：电机测试与方向校准</h2>
+<div class="step"><span class="num">1</span>发 <code>1</code>（遥控模式），再发 <code>S</code> 确保停止状态。</div>
+<div class="step"><span class="num">2</span>发 <code>-</code> 把速度降到 1 档，然后发 <code>F</code>：<strong>4 个轮子应该都向前转</strong>。</div>
+<div class="step"><span class="num">3</span>哪边轮子转反了 → 断电，把<strong>那一边两个电机接 TB6612 的两根线互换</strong>（AO1/AO2 或 BO1/BO2 对调）。</div>
+<div class="step"><span class="num">4</span>依次验证 <code>B</code>（后退）、<code>L</code>（原地左转）、<code>R</code>（原地右转）、<code>S</code>（停）。</div>
+<div class="step"><span class="num">5</span>如果有轮子完全不转：先听有没有"嗡嗡"声。有声音不转 = 电池电压低或 PWM 太小（发 <code>+</code> 加档试试）；完全没反应 = 查那组电机的接线、TB6612 的 AO/BO 输出。</div>
+
+<h2>第 4 步：用"传感器监视模式"看数据</h2>
+<p>发 <code>4</code> 进入监视模式，APP 每 0.3 秒打印一行，像这样：</p>
+<pre style="background:#222;color:#9f9;padding:10px 14px;border-radius:8px;font-size:13px;">XJ L0 M0 R0 | ZA L0 M0 R0 | US 999 cm | ENC 0 0 0 0
+循迹左中右    避障左中右     超声波距离    四个编码器脉冲</pre>
+<table>
+ <tr><th>怎么测</th><th>预期变化</th></tr>
+ <tr><td>黑胶带/黑色物体贴到"循迹-左"探头下</td><td>XJ 的 L 变 1，拿开变回 0</td></tr>
+ <tr><td>手挡在"避障-中"探头前 15cm</td><td>ZA 的 M 变 1</td></tr>
+ <tr><td>手掌放在超声波正前方 30cm</td><td>US 显示约 30，拿远数字变大，遮挡消失后 999</td></tr>
+ <tr><td>用手向前拨动左前轮</td><td>ENC 第 1 个数字快速增加</td></tr>
+</table>
+<p class="tip">💡 哪个传感器不动/数值不变，就重点检查那个模块的电源和信号线。这一步把所有硬件问题暴露在地上，比装好整车再找容易十倍。</p>
+
+<h2>第 5 步：校准循迹模块（重要）</h2>
+<div class="step"><span class="num">1</span>用黑色电工胶带在白纸/白色桌面上贴一条 1.5~2cm 宽的直线。</div>
+<div class="step"><span class="num">2</span>监视模式（<code>4</code>）下，把车摆在黑线上：三个探头都压在线上时，应该 <code>XJ L1 M1 R1</code>。</div>
+<div class="step"><span class="num">3</span>哪个探头在黑线上却显示 0（或白地上显示 1）→ 用螺丝刀微调那个模块的电位器，直到黑白区分明确（黑=1，白=0）。</div>
+<div class="step"><span class="num">4</span>模块离地 5~15mm 最灵敏；探头固定要牢，不能晃。</div>
+
+<h2>第 6 步：下地跑车</h2>
+<div class="step"><span class="num">1</span>循迹：把车摆在线上（中线对准中间探头），发 <code>2</code>。车沿线走。<strong>三个探头都丢线时，车会按原来的方向继续找线 0.6 秒，找不到才停车</strong>（所以过急弯别太快）。若转弯太猛来回甩 → 改小 <code>config.h</code> 里 <code>TRACK_BASE</code>；若转弯不及时冲出线 → 改大 <code>TRACK_DIFF</code> 或减小 <code>TRACK_BASE</code>。</div>
+<div class="step"><span class="num">2</span>避障：发 <code>3</code>。用手在车头前方 20cm 处晃，车应该后退然后转向绕开。距离标准由 <code>AVOID_DIST_CM</code>（默认 25cm）和避障模块电位器决定。</div>
+
+<h2>第 7 步（可选）：验证速度/里程</h2>
+<p>把车抬起，发 <code>F</code> 前进，再发 <code>V</code>：应显示左右轮速（pps，每秒脉冲数）和累计里程。第一次跑之前建议确认 <code>config.h</code> 里 <code>ENCODER_PPR</code> 与你的码盘孔数一致，否则里程不准（速度显示不受影响）。</p>
+
+<h2>常见问题排查表</h2>
+<table>
+ <tr><th style="width:32%">症状</th><th>可能原因 → 解决办法</th></tr>
+ <tr><td>LED 不闪，像没通电</td><td>5V 没到位 / 下载没成功 / BOOT 跳线位置不对 → 万用表量单片机 5V 引脚；重新 F8</td></tr>
+ <tr><td>蓝牙搜不到 HC-05</td><td>HC-05 没供电（看它板上的灯亮不亮）/ 手机权限 → 确认 VCC 接 5V</td></tr>
+ <tr><td>蓝牙连上了但发 H 没反应</td><td>TXD/RXD 没有交叉（应为 HC-05 TXD→PA10、RXD→PA9）/ 共地没做好 / 波特率不对（默认 9600）</td></tr>
+ <tr><td>收到一堆乱码</td><td>波特率不对（HC-05 默认 9600）/ APP 编码设置改 UTF-8</td></tr>
+ <tr><td>发 F 只有一侧轮转</td><td>另一侧 AIN/BIN/PWM 线松了；或 TB6612 那一路的 PWMA/PWMB 线没接好</td></tr>
+ <tr><td>轮子"嗡嗡"响但不转</td><td>电池电量不足（TT 电机电流大）/ 速度档太低 → 发 <code>+</code>；或 MIN_RUN_PWM 调大</td></tr>
+ <tr><td>一通电就猛冲</td><td>STBY 没接对（应接 PB5）/ 电机线接在 TB6612 输入侧 / 没共地导致信号脚乱跳</td></tr>
+ <tr><td>方向反了（前进变后退）</td><td>正常现象，把对应侧两根电机线对调，或发指令时 F/B 互换使用</td></tr>
+ <tr><td>循迹模式车乱摆</td><td>电位器没校准（回第 5 步）/ 速度太快 / 线太窄（用 1.5cm 以上电工胶带）/ 阳光直射干扰红外</td></tr>
+ <tr><td>循迹一上车就报丢线停车</td><td>BLACK 白反了 → 把 <code>config.h</code> 的 <code>LINE_LEVEL</code> 从 1 改 0</td></tr>
+ <tr><td>避障模式没事也一直转</td><td>避障模块电平相反 → 把 <code>OBST_LEVEL</code> 从 0 改 1；或探头距离调太远（拧电位器）</td></tr>
+ <tr><td>超声波一直是 999</td><td>Trig/Echo 接反了 / Echo 没接 PB9 / 模块必须 5V 供电 / 前方真的没有物体（正常现象）</td></tr>
+ <tr><td>超声波距离乱跳</td><td>软排线太长干扰 / 两个超声波装太近（本车只有1个无碍）/ 供电不稳，给 5V 加个 100~470µF 电容</td></tr>
+ <tr><td>编码器数字不动</td><td>码盘没跟着转（卡太紧或太松）/ 传感器孔没对准 / DO 线松</td></tr>
+ <tr><td>车跑一段时间电机烫</td><td>正常偏热没问题；烫手就降速：调小 config.h 各速度参数，或电池电压高时少用 3 档</td></tr>
+ <tr><td>Keil 报 No Compiler 5</td><td>新版 MDK(≥5.37) 不带 AC5：到 Arm 官网下载 "ARM Compiler 5" 安装包，装完后 Keil 里 Options → Target → ARM Compiler 选 "Use default compiler version 5"</td></tr>
+ <tr><td>Keil 报找不到器件/pack</td><td>Pack Installer 里安装 Keil::STM32F1xx_DFP</td></tr>
+ <tr><td>下载时报 No Algorithm found</td><td>Utilities → Settings → Add → 选 STM32F10x Med-density flash 128K</td></tr>
+ <tr><td>车跑几十秒自己重启</td><td>电池带不动：18650 用带保护板充满电的；LM2596 输入接电池而不是接电机那头；给 5V 加大电容</td></tr>
+</table>
+
+<h2>附录：改参数速查（都在 Project\User\config.h）</h2>
+<table>
+ <tr><th>参数</th><th>默认值</th><th>作用</th></tr>
+ <tr><td><code>LINE_LEVEL</code></td><td>1</td><td>检测到黑线时模块输出的电平（1=高）</td></tr>
+ <tr><td><code>OBST_LEVEL</code></td><td>0</td><td>检测到障碍时模块输出的电平（0=低）</td></tr>
+ <tr><td><code>TRACK_BASE / TRACK_DIFF</code></td><td>3800 / 2600</td><td>循迹直行速度 / 转弯力度</td></tr>
+ <tr><td><code>SPEED_LOW/MID/HIGH</code></td><td>3200/4500/5800</td><td>遥控三档速度</td></tr>
+ <tr><td><code>AVOID_DIST_CM</code></td><td>25</td><td>超声波避障距离（厘米）</td></tr>
+ <tr><td><code>AVOID_PWM / AVOID_TURN_PWM</code></td><td>4500 / 3200</td><td>避障前进速度 / 原地转向速度</td></tr>
+ <tr><td><code>ENCODER_PPR</code></td><td>20</td><td>码盘一圈孔数（影响里程精度）</td></tr>
+ <tr><td><code>WHEEL_MM</code></td><td>65</td><td>车轮直径（毫米）</td></tr>
+ <tr><td><code>BT_BAUDRATE</code></td><td>9600</td><td>HC-05 波特率（别乱改，除非你在 AT 模式改过 HC-05）</td></tr>
+ <tr><td><code>BT_FAILSAFE_MS</code></td><td>0</td><td>蓝牙失联保护：遥控时超过这个毫秒数没收到指令且车在动就自动停车（防跑丢）。0=关闭，建议户外玩时改成 1500</td></tr>
+</table>
+
+<h2>附录：HC-05 进阶（改名字/改密码，可选）</h2>
+<p>HC-05 出厂就能用，不用改。想改名字的话：EN 脚接 3.3V 后上电进入 AT 模式（灯慢闪 2 秒一次），USB-TTL 连模块串口，波特率 38400，发：</p>
+<pre style="background:#222;color:#9f9;padding:10px 14px;border-radius:8px;font-size:13px;">AT+NAME=MyCar
+AT+PSWD="1234"</pre>
+<p>没有 USB-TTL 也可以不改，不影响任何功能。</p>
+
+<p style="margin-top:40px;color:#888;">调不出来时：回到第 4 步监视模式，看数据说话，不要靠猜。</p>
+</body>
+</html>

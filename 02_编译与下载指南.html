@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>02 编译与下载指南 · STM32 智能小车</title>
+<style>
+ body{font-family:"Microsoft YaHei",system-ui;max-width:920px;margin:24px auto;padding:0 16px;color:#222;line-height:1.75;}
+ h1{border-bottom:3px solid #2b6cb0;padding-bottom:8px;font-size:26px;}
+ h2{color:#2b6cb0;margin-top:34px;border-left:5px solid #2b6cb0;padding-left:10px;font-size:20px;}
+ table{border-collapse:collapse;width:100%;margin:12px 0;}
+ th,td{border:1px solid #bbb;padding:6px 10px;text-align:left;vertical-align:top;}
+ th{background:#e8f0fe;}
+ .warn{background:#fff3cd;border:1px solid #f0c36d;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ .danger{background:#fdecea;border:1px solid #e57373;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ .tip{background:#e6f4ea;border:1px solid #86c79a;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ code{background:#f0f0f0;padding:1px 6px;border-radius:4px;font-family:Consolas,monospace;}
+ .step{background:#f7f9fc;border:1px solid #d5dce8;border-radius:8px;padding:10px 16px;margin:12px 0;}
+ .num{display:inline-block;background:#2b6cb0;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-weight:bold;}
+ kbd{background:#333;color:#fff;border-radius:4px;padding:1px 8px;font-family:Consolas,monospace;font-size:13px;}
+</style>
+</head>
+<body>
+
+<h1>🛠 02 编译与下载指南</h1>
+<p>目标：把 <code>Project\</code> 里的工程在 Keil5 里编译成功，并烧录进 STM32F103C8T6。工程里所有选项（芯片型号、宏定义、头文件路径、MicroLIB、生成HEX）<strong>都已经配好了</strong>，正常情况下你只需要打开 → 编译 → 下载。</p>
+
+<h2>一、你需要准备什么</h2>
+<table>
+ <tr><th>软件</th><th>说明</th></tr>
+ <tr><td>Keil MDK5（任意 5.x 版本）</td><td>装好后要装 <strong>STM32F1xx 器件包</strong>：Keil 菜单 <code>Pack Installer</code> → 搜 <code>STM32F1xx_DFP</code> → Install（需要网络）</td></tr>
+ <tr><td>ARM Compiler 5</td><td>MDK 5.36 及以前自带；MDK 5.37 以后不带，安装时勾选或单独装（报错见 FAQ）</td></tr>
+ <tr><td>ST-Link 驱动</td><td>ST 官网下载 <code>STSW-LINK007</code>，或插上 ST-Link 后用驱动精灵装</td></tr>
+ <tr><td>ST-Link 调试器 + 4 根杜邦线</td><td>淘宝几块钱~十几块</td></tr>
+</table>
+
+<h2>二、打开工程</h2>
+<div class="step"><span class="num">1</span>双击 <code>Project\SmartCar.uvprojx</code>（这就是 MDK5 新格式工程，已经迁移并实测编译通过）。</div>
+<div class="step"><span class="num">2</span>如果你打开的是旧的 <code>SmartCar.uvproj</code>，会弹窗 <code>Using an MDK Version 4 Project</code> 问你怎么处理：<strong>点 "Migrate to Device Pack"</strong>（迁移到器件包）→ 弹出"Migration completed"点<strong>确定</strong>。这是正常的一次性格式升级，迁移后会多出一个 <code>SmartCar.uvprojx</code>，以后用它就行。</div>
+<div class="step"><span class="num">3</span>迁移过程中如果闪过一次 <code>Error: Device not found</code>，点<strong>确定</strong>关掉即可（迁移器会自动完成器件映射，已实测无影响）。</div>
+<div class="step"><span class="num">4</span>左侧 Project 窗口应能看到 4 个分组：User / Hardware / CMSIS / StdPeriph。</div>
+
+<h2>三、编译</h2>
+<div class="tip">✅ <strong>本工程已经在 Keil MDK5（AC5.06 编译器）实际编译通过：0 错误、0 警告</strong>，并且 <code>Project\Objects\SmartCar.hex</code> 已经生成——不想折腾编译的话，可以直接用 Keil（Flash → Download）或 ST-Link Utility 烧录这个 hex。程序大小约 7.5KB（芯片有 64KB，非常宽裕）。</div>
+<div class="step"><span class="num">1</span>点工具栏的编译按钮，或按 <kbd>F7</kbd>（Rebuild 用 <kbd>F7</kbd> 前先 <kbd>Project → Clean</kbd>）。</div>
+<div class="step"><span class="num">2</span>等下方 Build Output 显示：</div>
+<pre style="background:#222;color:#9f9;padding:10px 14px;border-radius:8px;font-size:13px;">"SmartCar.axf" - 0 Error(s), x Warning(s).
+（0 个错误就成功了，几个警告不影响使用）</pre>
+<div class="step"><span class="num">3</span>编译成功后 <code>Project\Objects\</code> 里会生成 <code>SmartCar.hex</code>（工程已配置自动生成 HEX）。</div>
+
+<div class="warn">常见编译报错：<br>① <code>Error: L6218E: Undefined symbol ...</code> → 检查 StdPeriph 组里的文件是否都在。<br>
+② <code>cannot open source file stm32f10x.h</code> → 头文件路径丢了：Options → C/C++ → Include Paths 填 <code>.\User;.\Hardware;.\Core;.\StdPeriph\inc</code><br>
+③ <code>No Compiler 5 / ARMCC not found</code> → 你装的是新版 MDK，需要另装 ARM Compiler 5（见 FAQ）。</div>
+
+<h2>四、下载（烧录）到单片机</h2>
+<div class="step"><span class="num">1</span>用杜邦线把 ST-Link 和最小系统板连好（3.3V、GND、SWDIO、SWCLK，见 01 接线指南第八节）。<strong>两个 BOOT 跳线帽都在 0 档。</strong></div>
+<div class="step"><span class="num">2</span>Keil 里点魔术棒 <code>Options for Target → Debug</code> 标签 → 右侧下拉框选 <strong>ST-Link Debugger</strong> → 点 Settings：应能看到 SW Device 信息（有 SN 号和芯片 ID 说明连上了）。</div>
+<div class="step"><span class="num">3</span>再到 <code>Utilities</code> 标签：勾选 <code>Use Debug Driver</code>（与 Debug 页一致），点 <code>Settings</code>：确认 <strong>Flash Download</strong> 页里有 <code>STM32F10x Med-density flash 128K</code>，并勾选 <strong>Reset and Run</strong>（下载完自动运行）。</div>
+<div class="step"><span class="num">4</span>按 <kbd>F8</kbd>（或 Flash → Download）。成功会显示 <code>Application running ...</code>。此时小车上电后板载 LED 会每 0.5 秒闪一下（心跳）。</div>
+
+<div class="danger">下载失败排查：<br>
+① <code>No target connected</code> → 检查 4 根线；确认最小系统板有电（可只靠 ST-Link 的 3.3V 供电）<br>
+② <code>No Algorithm found / Flash load failed</code> → Utilities → Settings → Add → 选 <code>STM32F10x Med-density flash (128K)</code><br>
+③ 一直连不上 → 按住板上的 RESET 再点下载，瞬间松开；或把 BOOT0 拨到 1 连接后拨回 0<br>
+④ ST-Link 插上电脑没反应 → 装 STSW-LINK007 驱动</div>
+
+<h2>五、（备用）手动新建工程的完整步骤</h2>
+<p>如果 <code>SmartCar.uvproj</code> 因版本问题实在打不开，按下面步骤 5 分钟就能手动建一个一模一样的（前提：库文件都在 <code>Project</code> 文件夹里）：</p>
+<table>
+ <tr><th>步骤</th><th>操作</th></tr>
+ <tr><td>1</td><td><code>Project → New uVision Project</code>，保存到 <code>Project</code> 文件夹，命名 SmartCar</td></tr>
+ <tr><td>2</td><td>器件选择：<strong>STMicroelectronics → STM32F1 Series → STM32F103C8</strong></td></tr>
+ <tr><td>3</td><td>弹出的 Manage Run-Time Environment 直接点 Cancel（我们手动加文件）</td></tr>
+ <tr><td>4</td><td>左侧 Targets→Source Group 1 改名为 User，右键 Add Existing Files，加 <code>User\main.c</code>、<code>User\stm32f10x_it.c</code></td></tr>
+ <tr><td>5</td><td>同样新建分组 Hardware，加 Hardware 里的 6 个 .c；新建 CMSIS，加 <code>Core\core_cm3.c</code>、<code>Core\system_stm32f10x.c</code>、<code>Core\startup_stm32f10x_md.s</code>；新建 StdPeriph，加 <code>StdPeriph\src</code> 里的 misc.c、stm32f10x_gpio.c、stm32f10x_rcc.c、stm32f10x_tim.c、stm32f10x_exti.c、stm32f10x_usart.c、stm32f10x_flash.c</td></tr>
+ <tr><td>6</td><td>魔术棒 → Target 页：晶振 8MHz（默认即可）</td></tr>
+ <tr><td>7</td><td>C/C++ 页：<code>Preprocessor Symbols</code> 的 Define 填 <code>USE_STDPERIPH_DRIVER,STM32F10X_MD</code>；Include Paths 填 <code>.\User;.\Hardware;.\Core;.\StdPeriph\inc</code>；勾选 <strong>Use MicroLIB</strong></td></tr>
+ <tr><td>8</td><td>Output 页：勾选 <strong>Create HEX File</strong></td></tr>
+ <tr><td>9</td><td>Debug 页选 ST-Link Debugger；Utilities 页勾 Use Debug Driver，Settings 里确认 Flash 算法为 STM32F10x Med-density 128K</td></tr>
+ <tr><td>10</td><td>F7 编译 → F8 下载</td></tr>
+</table>
+
+<h2>六、日常修改代码的流程</h2>
+<p>改 <code>.c/.h</code> 文件（用 Keil 自带编辑器，中文注释正常显示）→ <kbd>F7</kbd> 编译 → <kbd>F8</kbd> 下载 → 观察现象。常用参数都在 <code>Project\User\config.h</code> 里，比如循迹速度 <code>TRACK_BASE</code>、避障距离 <code>AVOID_DIST_CM</code>、三档速度等，改完重新编译下载即可。</p>
+
+<p style="margin-top:40px;color:#888;">提示：如果你在这台电脑还没装 Keil5，先去安装（官网或正规渠道），再回来做本章操作。</p>
+</body>
+</html>

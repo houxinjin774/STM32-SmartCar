@@ -1,0 +1,21 @@
+# ===== Keil MDK 编译产物（可随时重新编译生成） =====
+Project/Objects/*
+!Project/Objects/SmartCar.hex
+Project/Listings/
+*.dep
+*.lnp
+*.crf
+*.d
+*.o
+*.lst
+*.htm
+
+# ===== Keil 界面布局（每人打开都会变，不用上传） =====
+*.uvguix.*
+*.uvgui.*
+
+# ===== 临时文件 =====
+build_log.txt
+*.bak
+*.tmp
+Thumbs.db
