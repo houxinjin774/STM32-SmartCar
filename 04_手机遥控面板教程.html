@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>04 手机遥控面板教程 · STM32 智能小车</title>
+<style>
+ body{font-family:"Microsoft YaHei",system-ui;max-width:920px;margin:24px auto;padding:0 16px;color:#222;line-height:1.75;}
+ h1{border-bottom:3px solid #2b6cb0;padding-bottom:8px;font-size:26px;}
+ h2{color:#2b6cb0;margin-top:34px;border-left:5px solid #2b6cb0;padding-left:10px;font-size:20px;}
+ table{border-collapse:collapse;width:100%;margin:12px 0;}
+ th,td{border:1px solid #bbb;padding:6px 10px;text-align:left;vertical-align:top;}
+ th{background:#e8f0fe;}
+ .warn{background:#fff3cd;border:1px solid #f0c36d;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ .tip{background:#e6f4ea;border:1px solid #86c79a;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ .danger{background:#fdecea;border:1px solid #e57373;border-radius:8px;padding:12px 16px;margin:16px 0;}
+ code{background:#f0f0f0;padding:1px 6px;border-radius:4px;font-family:Consolas,monospace;}
+ .step{background:#f7f9fc;border:1px solid #d5dce8;border-radius:8px;padding:10px 16px;margin:12px 0;}
+ .num{display:inline-block;background:#2b6cb0;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-weight:bold;}
+ .pad{background:#222;color:#fff;border-radius:10px;padding:14px;margin:12px 0;font-family:Consolas,monospace;line-height:2;}
+</style>
+</head>
+<body>
+
+<h1>📱 04 手机遥控面板教程</h1>
+<p>让手机变成一个真正的"遥控器"：<strong>方向摇杆 + 速度加减 + 一键循迹 + 一键避障</strong>，还能在小车上看到距离和速度回传。不用改任何小车代码，装个 APP 配一遍面板就行。</p>
+
+<div class="warn">⚠️ <strong>前提：需要一台安卓手机。</strong> HC-05 是经典蓝牙串口设备，安卓原生支持；<strong>iPhone 不支持</strong>（苹果封了这种连接方式）。iPhone 用户可以用电脑控制（需要时再找我做电脑网页控制台）。</div>
+
+<h2>方案A（推荐）：Bluetooth Electronics 图形面板</h2>
+<p>这款 APP（keuwlsoft 出品）就是专门给蓝牙小车做控制面板的，最终效果：</p>
+<div class="pad" style="max-width:420px;">
+[1·遥控] [2·循迹] [3·避障] [4·监视]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▲&nbsp;&nbsp;(按住才走，松手就停)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;◀&nbsp;&nbsp;■急停&nbsp;&nbsp;▶<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br>
+[−减速]&nbsp;&nbsp;[＋加速]&nbsp;&nbsp;[0·待机]<br>
+┌─────────────────────┐<br>
+│ 回传区：距离/速度/传感器数据 &nbsp;&nbsp;│<br>
+└─────────────────────┘</div>
+
+<h3>第1步：装 APP 并配对蓝牙</h3>
+<div class="step"><span class="num">1</span>安卓手机安装 <strong>Bluetooth Electronics</strong>（keuwlsoft）：Google Play 搜名字装；国内商店搜不到就去官网 <code>keuwl.com</code> 或 APKPure 下载 APK 安装。</div>
+<div class="step"><span class="num">2</span>手机系统设置 → 蓝牙 → 搜索设备 → 点 <strong>HC-05</strong> → 输密码 <strong>1234</strong>（个别是0000）。配对好即可，先别急着连。</div>
+
+<h3>第2步：在 APP 里连接小车</h3>
+<div class="step"><span class="num">1</span>打开 APP，左右滑动或点菜单切到 <strong>Devices（设备）</strong>页。</div>
+<div class="step"><span class="num">2</span>选中刚配对的 HC-05，点 <strong>Connect（连接）</strong>。连上后顶部会显示蓝牙已连接，HC-05 板上的灯变成约 2 秒慢闪一次。</div>
+
+<h3>第3步：新建面板（Edit 模式）</h3>
+<div class="step"><span class="num">1</span>回到面板页，点顶部 <strong>Edit（编辑）</strong>进入编辑模式（新建面板入口在面板列表的菜单里，叫 New Panel / 新面板；找不到就直接改一个示例面板，效果一样）。</div>
+<div class="step"><span class="num">2</span>从控件列表把 <strong>按钮（Button）</strong>、<strong>方向板（Pad，4向）</strong>、<strong>监视终端（Monitor Terminal）</strong>拖到面板上，摆成上面示意图的样子。</div>
+<div class="step"><span class="num">3</span>点选每个控件 → 在右下角属性区点编辑，按下表填"按下发送"和"松开发送"字符串（<strong>一个字母都别打错，区分大小写</strong>）：</div>
+
+<table>
+ <tr><th>控件</th><th>按钮上显示的文字</th><th>按下发送</th><th>松开发送</th></tr>
+ <tr><td>按钮</td><td>1·遥控</td><td><code>1</code></td><td>（空）</td></tr>
+ <tr><td>按钮</td><td>2·循迹</td><td><code>2</code></td><td>（空）</td></tr>
+ <tr><td>按钮</td><td>3·避障</td><td><code>3</code></td><td>（空）</td></tr>
+ <tr><td>按钮</td><td>4·监视</td><td><code>4</code></td><td>（空）</td></tr>
+ <tr><td>按钮</td><td>0·待机</td><td><code>0</code></td><td>（空）</td></tr>
+ <tr><td><strong>方向板(Pad)</strong></td><td>上=前进</td><td>上：<code>F</code></td><td rowspan="4" style="vertical-align:middle"><strong>统一填 <code>S</code></strong>（这就是"松手就停"的秘诀）</td></tr>
+ <tr><td></td><td>下=后退</td><td>下：<code>B</code></td></tr>
+ <tr><td></td><td>左=左转</td><td>左：<code>L</code></td></tr>
+ <tr><td></td><td>右=右转</td><td>右：<code>R</code></td></tr>
+ <tr><td>按钮</td><td>■ 急停</td><td><code>S</code></td><td>（空）</td></tr>
+ <tr><td>按钮</td><td>＋ 加速</td><td><code>+</code></td><td>（空）</td></tr>
+ <tr><td>按钮</td><td>− 减速</td><td><code>-</code></td><td>（空）</td></tr>
+ <tr><td>监视终端</td><td>（不用设置发送）</td><td colspan="2">自动显示小车发回来的所有数据（距离、速度、传感器状态）</td></tr>
+</table>
+
+<div class="step"><span class="num">4</span>保存并退出编辑模式，点 <strong>Run（运行）</strong>，遥控器就能用了！</div>
+
+<h3>怎么玩</h3>
+<table>
+ <tr><th>想做什么</th><th>操作</th></tr>
+ <tr><td>手动开车</td><td>点 <code>1·遥控</code> → <strong>按住方向板</strong>开车，松手自动停；点 ＋/− 换 3 个速度档</td></tr>
+ <tr><td>自动沿黑线跑</td><td>把车摆到线上，点 <code>2·循迹</code>。想停下点 <code>0·待机</code></td></tr>
+ <tr><td>自动避障</td><td>点 <code>3·避障</code>，车会自己绕开前方障碍</td></tr>
+ <tr><td>看传感器数据</td><td>点 <code>4·监视</code>，回传区每 0.3 秒刷新一行；随时点 ＋/− 后看到 <code>GEAR 2</code> 说明双向通信正常</td></tr>
+</table>
+
+<div class="tip">💡 循迹/避障是自动模式，方向板对它们无效（这是正常的）。自动模式下车不会自己停，玩完记得点 <code>0·待机</code>！</div>
+
+<h2>方案B（备用）：Serial Bluetooth Terminal 宏按钮</h2>
+<p>如果方案A装不上，用之前教程里的 <strong>Serial Bluetooth Terminal</strong> 也能做按键：</p>
+<div class="step"><span class="num">1</span>连接 HC-05 后，<strong>长按</strong>输入框上方的任意宏按钮（M1~M7）。</div>
+<div class="step"><span class="num">2</span>在弹出窗口里填 Label（按钮名）和 Message（发送内容），比如 M1 改成：Label=<code>前进</code>，Message=<code>F</code>。</div>
+<div class="step"><span class="num">3</span>建议的 7 个按钮：M1=<code>1</code>遥控 M2=<code>2</code>循迹 M3=<code>3</code>避障 M4=<code>0</code>待机 M5=<code>F</code>前进 M6=<code>B</code>后退 M7=<code>S</code>停止。左转/右转/加减速直接打字发 <code>L</code> <code>R</code> <code>+</code> <code>-</code>。</div>
+<div class="warn">注意：SBT 的按钮是"点一下发一次"，没有"松手就停"，所以停止要靠手点 <code>S</code>，新手反应慢容易撞——这就是为什么推荐方案A。</div>
+
+<h2>常见问题</h2>
+<table>
+ <tr><th style="width:35%">现象</th><th>解决</th></tr>
+ <tr><td>APP 里搜不到/连不上 HC-05</td><td>先在系统蓝牙设置里配对成功（密码1234）再进 APP 连；确认 HC-05 红灯在闪（有电）</td></tr>
+ <tr><td>显示已连接但按按钮没反应</td><td>① 字母大小写打错了（必须大写 F/B/L/R/S）；② 小车程序没在运行（LED 不闪？重新烧录）；③ 发 <code>H</code> 测试有没有回传</td></tr>
+ <tr><td>方向板松手不停</td><td>方向板的"松开发送"没填 <code>S</code>，回去补上</td></tr>
+ <tr><td>循迹/避障停不下来</td><td>点 <code>0·待机</code>；或关掉小车电源开关</td></tr>
+ <tr><td>回传区乱码</td><td>蓝牙波特率被改过？默认 9600；HC-05 供电不稳也会乱码</td></tr>
+ <tr><td>车跑出蓝牙范围失控</td><td>蓝牙距离约10米，跑远了会失灵；建议把 <code>config.h</code> 里 <code>BT_FAILSAFE_MS</code> 改成 1500（失联自动刹车）</td></tr>
+</table>
+
+<p style="margin-top:40px;color:#888;">面板配一次就永久保存在 APP 里，以后打开 APP → 连接 → Run 三步就能玩。</p>
+</body>
+</html>

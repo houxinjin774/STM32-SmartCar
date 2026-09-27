@@ -40,6 +40,7 @@
  <tr><td><code>01_接线指南.html</code></td><td>⭐ 每一根线接哪里，一张表都不用猜</td></tr>
  <tr><td><code>02_编译与下载指南.html</code></td><td>怎么用 Keil5 打开工程、编译、烧录进单片机</td></tr>
  <tr><td><code>03_调试指南与常见问题.html</code></td><td>装好之后怎么一步步调出来，出问题怎么查</td></tr>
+ <tr><td><code>04_手机遥控面板教程.html</code></td><td>📱 把手机变成图形遥控器：方向摇杆（按住才走松手就停）+ 速度加减 + 一键循迹/避障</td></tr>
  <tr><td><code>蓝牙指令速查.txt</code></td><td>手机 APP 上发的指令一览表</td></tr>
  <tr><td><code>Project\</code></td><td>完整的 Keil 工程（含全套 ST 标准库 3.5.0 + 已写好的全部代码）</td></tr>
 </table>
@@ -48,7 +49,7 @@
 <div class="step"><span class="num">1</span><strong>接线</strong> —— 照着 <code>01_接线指南.html</code> 一根一根接。接完对着文末的检查清单打勾。</div>
 <div class="step"><span class="num">2</span><strong>调电源</strong> —— 先不接单片机，给电池上电，用万用表把 LM2596 的输出调到 <strong>5.00V</strong>（这一步千万别跳过，详见接线指南）。</div>
 <div class="step"><span class="num">3</span><strong>烧录</strong> —— 照着 <code>02_编译与下载指南.html</code> 打开 <code>Project\SmartCar.uvprojx</code>，编译（F7），用 ST-Link 下载（F8）。<strong>工程已在你电脑的 Keil 上实测编译通过（0 错误 0 警告），<code>Project\Objects\SmartCar.hex</code> 现成的，跳过编译直接烧也行。</strong></div>
-<div class="step"><span class="num">4</span><strong>连蓝牙</strong> —— 手机配对 HC-05（密码 1234），打开蓝牙串口 APP，发 <code>H</code> 能收到帮助信息就成功了。</div>
+<div class="step"><span class="num">4</span><strong>连蓝牙</strong> —— 手机配对 HC-05（密码 1234），照 <code>04_手机遥控面板教程.html</code> 装一个遥控面板 APP，就能用按钮开车；发 <code>H</code> 能收到帮助信息也说明链路通了。</div>
 <div class="step"><span class="num">5</span><strong>调试跑车</strong> —— 照着 <code>03_调试指南与常见问题.html</code>：先架空测电机，再校准循迹，最后下地跑。</div>
 
 <h2>四、蓝牙指令速查</h2>
